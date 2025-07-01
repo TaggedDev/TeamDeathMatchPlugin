@@ -1,4 +1,5 @@
-﻿using OpenMod.API.Ioc;
+﻿using System;
+using OpenMod.API.Ioc;
 
 namespace Scitalis.TDM.MatchScore
 {
@@ -8,5 +9,7 @@ namespace Scitalis.TDM.MatchScore
         void ResetProgress();
         void SetProgress(int score);
         void SetProgress(string teamName, int score);
+        string GetTeamProgress(string teamName);
+        event EventHandler OnTeamScoreUpdated;
     }
 }

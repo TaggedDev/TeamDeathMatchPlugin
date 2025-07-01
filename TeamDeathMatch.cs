@@ -43,7 +43,6 @@ namespace Scitalis.TDM
         {
             await UniTask.SwitchToMainThread();
             await _teamDataStore.LoadTeamsAsync();
-            await _uiPointService.LoadAsync(this);
             _logger.LogInformation("[TDM] Plugin loaded");
             await UniTask.SwitchToThreadPool(); // you can switch back to a different thread
         }

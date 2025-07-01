@@ -42,10 +42,8 @@ namespace Scitalis.TDM.Models
 
         public void RemovePlayerFromTeam(string teamName, CSteamID steamID)
         {
-            if (Items.TryGetValue(teamName, out var teamInfo))
-            {
+            if (Items.TryGetValue(teamName, out var teamInfo)) 
                 teamInfo.PlayerIDs.Remove(steamID);
-            }
         }
     }
 }

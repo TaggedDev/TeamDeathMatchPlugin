@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenMod.API.Eventing;
 using OpenMod.API.Ioc;
@@ -16,33 +19,49 @@ namespace Scitalis.TDM.MatchScore
     [PluginServiceImplementation(Lifetime = ServiceLifetime.Singleton)]
     public class MatchScore : IMatchScore, IEventListener<UnturnedPlayerDeathEvent>
     {
-        private readonly ITeamDataStore _teamData;
         private readonly IUnturnedUserDirectory _userDirectory;
-        
-        public Dictionary<string, int> TeamScores { get; private set; } = new Dictionary<string, int>();
+        private readonly ITeamDataStore _teamData;
+        private readonly int _targetScore;
+        private bool _isGamePaused;
 
-        public MatchScore(ITeamDataStore teamData, IUnturnedUserDirectory userDirectory)
+        private Dictionary<string, int> TeamScores { get; }
+
+        public event EventHandler OnTeamScoreUpdated = delegate {}; 
+
+        public MatchScore(ITeamDataStore teamData, IUnturnedUserDirectory userDirectory, IConfiguration configuration)
         {
             _teamData = teamData;
             _userDirectory = userDirectory;
+            TeamScores = new Dictionary<string, int>();
+
+            _targetScore = configuration.GetSection("kills_to_victory").Get<int>();
         }
 
         public void ResetProgress()
         {
             foreach (KeyValuePair<string, int> teamScore in TeamScores) 
                 TeamScores[teamScore.Key] = 0;
+            OnTeamScoreUpdated(this, EventArgs.Empty);
+            CheckWinningCondition();
         }
 
         public void SetProgress(int score)
         {
             foreach (KeyValuePair<string, int> teamScore in TeamScores)
                 TeamScores[teamScore.Key] = score;
+            OnTeamScoreUpdated(this, EventArgs.Empty);
+            CheckWinningCondition();
         }
 
         public void SetProgress(string teamName, int score)
         {
             TeamScores[teamName] = score;
+            OnTeamScoreUpdated(this, EventArgs.Empty);
+            CheckWinningCondition();
         }
+
+        public string GetTeamProgress(string teamName) 
+            => !TeamScores.TryGetValue(teamName, out int score) ? "#TNF" : score.ToString();
 
         public Task HandleEventAsync(object? sender, UnturnedPlayerDeathEvent @event)
         {
@@ -71,6 +90,11 @@ namespace Scitalis.TDM.MatchScore
             return Task.CompletedTask;
         }
 
+        private void CheckWinningCondition()
+        {
+            _isGamePaused = TeamScores.Any(teamScore => teamScore.Value >= _targetScore);
+        }
+
         private void HandlePvPKill(CSteamID killerUserSteamId, CSteamID victimUserSteamId)
         {
             string killerTeam = _teamData.GetTeam(killerUserSteamId);
@@ -83,14 +107,24 @@ namespace Scitalis.TDM.MatchScore
 
         private void HandleEnemyKill(string killerTeam)
         {
-            if (!TeamScores.TryAdd(killerTeam, -1))
-                TeamScores[killerTeam] -= 1;
+            if (_isGamePaused)
+                return;
+            
+            if (!TeamScores.TryAdd(killerTeam, 1))
+                TeamScores[killerTeam] += 1;
+            OnTeamScoreUpdated(this, EventArgs.Empty);
+            CheckWinningCondition();
         }
 
         private void HandleTeamKill(string killerTeam)
         {
-            if (!TeamScores.TryAdd(killerTeam, 1))
-                TeamScores[killerTeam] += 1;
+            if (_isGamePaused)
+                return;
+            
+            if (!TeamScores.TryAdd(killerTeam, -1))
+                TeamScores[killerTeam] -= 1;
+            OnTeamScoreUpdated(this, EventArgs.Empty);
+            CheckWinningCondition();
         }
     }
 }
