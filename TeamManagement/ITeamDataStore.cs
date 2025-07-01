@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using OpenMod.API.Ioc;
-using OpenMod.Unturned.Users;
 using Scitalis.TDM.Models;
+using Steamworks;
 
 namespace Scitalis.TDM.TeamManagement
 {
@@ -11,10 +11,9 @@ namespace Scitalis.TDM.TeamManagement
         public TeamConfigs Configs { get; }
         Task LoadTeamsAsync();
         Task SaveTeamsAsync();
-        void AddUserToTeam(string userID, string teamName);
-        void RemoveUserFromTeam(string userID);
-        bool ArePlayersTeammates(string userID1, string userID2);
+        void AddUserToTeam(CSteamID steamID, string teamName);
+        void RemoveUserFromTeam(CSteamID steamID);
         void AddTeam(string teamName);
-        string GetTeam(UnturnedUser? unturnedUser);
+        string GetTeam(CSteamID steamID);
     }
 }

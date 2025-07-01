@@ -23,7 +23,7 @@ namespace Scitalis.TDM.Commands
         {
             var player = Context.Actor as UnturnedUser 
                          ?? throw new UserFriendlyException("Only players can use this.");
-            _teamDataStore.RemoveUserFromTeam(player.Id);
+            _teamDataStore.RemoveUserFromTeam(player.SteamId);
             await _teamDataStore.SaveTeamsAsync();
         }
     }

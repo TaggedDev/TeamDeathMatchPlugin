@@ -38,7 +38,7 @@ namespace Scitalis.TDM.Commands
                 throw new UserFriendlyException("The team name must be specified as a string value");
             }
             
-            _teamDataStore.AddUserToTeam(player.Id, teamName);
+            _teamDataStore.AddUserToTeam(player.SteamId, teamName);
             await player.PrintMessageAsync($"You joined the team {teamName}. " +
                                      $"Your team now has {_teamDataStore.Configs.Items[teamName].PlayerIDs.Count} members");
             await _teamDataStore.SaveTeamsAsync();

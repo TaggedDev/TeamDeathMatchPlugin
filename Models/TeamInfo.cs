@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Steamworks;
 
 namespace Scitalis.TDM.Models
 {
@@ -9,7 +10,7 @@ namespace Scitalis.TDM.Models
     {
         public string TeamName { get; set; } = string.Empty;
 
-        public List<string> PlayerIDs { get; set; } = new List<string>();
+        public List<CSteamID> PlayerIDs { get; set; } = new List<CSteamID>();
     }
 
     [Serializable]
@@ -18,11 +19,11 @@ namespace Scitalis.TDM.Models
         // REQUIRED: Use public property, not public field
         public Dictionary<string, TeamInfo> Items { get; set; } = new Dictionary<string, TeamInfo>();
 
-        public void HandleUserSwitchTeam(string teamName, string userID)
+        public void HandleUserSwitchTeam(string teamName, CSteamID steamID)
         {
             foreach (var teamInfo in Items.Values)
             {
-                teamInfo.PlayerIDs.Remove(userID);
+                teamInfo.PlayerIDs.Remove(steamID);
             }
 
             if (!Items.ContainsKey(teamName))
@@ -33,17 +34,17 @@ namespace Scitalis.TDM.Models
                 };
             }
 
-            if (!Items[teamName].PlayerIDs.Contains(userID))
+            if (!Items[teamName].PlayerIDs.Contains(steamID))
             {
-                Items[teamName].PlayerIDs.Add(userID);
+                Items[teamName].PlayerIDs.Add(steamID);
             }
         }
 
-        public void RemovePlayerFromTeam(string teamName, string userID)
+        public void RemovePlayerFromTeam(string teamName, CSteamID steamID)
         {
             if (Items.TryGetValue(teamName, out var teamInfo))
             {
-                teamInfo.PlayerIDs.Remove(userID);
+                teamInfo.PlayerIDs.Remove(steamID);
             }
         }
     }

@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 using OpenMod.API.Commands;
 using OpenMod.API.Ioc;
 using OpenMod.API.Persistence;
-using OpenMod.Unturned.Users;
 using Scitalis.TDM.Models;
+using Steamworks;
 
 namespace Scitalis.TDM.TeamManagement
 {
@@ -42,7 +42,7 @@ namespace Scitalis.TDM.TeamManagement
         public async Task SaveTeamsAsync()
             => await _dataStore.SaveAsync(ConfigsKey, Configs);
 
-        public void AddUserToTeam(string userID, string teamName)
+        public void AddUserToTeam(CSteamID steamID, string teamName)
         {
             if (!Configs.Items.TryGetValue(teamName, out var existingTeam))
             {
@@ -50,17 +50,17 @@ namespace Scitalis.TDM.TeamManagement
                 throw new UserFriendlyException($"There is no such team name \"{teamName}\". Available teams: {teamNames}");
             }
 
-            if (existingTeam.PlayerIDs.Contains(userID))
+            if (existingTeam.PlayerIDs.Contains(steamID))
             {
                 string teamNames = string.Join("\n- ", Configs.Items.Keys);
-                throw new UserFriendlyException($"User {userID} is already in this team. Available teams:\n -{teamNames}." +
+                throw new UserFriendlyException($"User {steamID} is already in this team. Available teams:\n -{teamNames}." +
                                                 "\nPlayer can only be in one team");
             }
 
-            Configs.HandleUserSwitchTeam(teamName, userID);
+            Configs.HandleUserSwitchTeam(teamName, steamID);
         }
 
-        public void RemoveUserFromTeam(string userID)
+        public void RemoveUserFromTeam(CSteamID steamID)
         {
             bool wasPlayerRemoved = WasUserFoundDuringRemoving();
 
@@ -72,7 +72,7 @@ namespace Scitalis.TDM.TeamManagement
             {
                 foreach (TeamInfo teamInfo in Configs.Items.Values)
                 {
-                    wasPlayerRemoved = teamInfo.PlayerIDs.Remove(userID);
+                    wasPlayerRemoved = teamInfo.PlayerIDs.Remove(steamID);
                     if (wasPlayerRemoved)
                         return true;
                 }
@@ -81,7 +81,7 @@ namespace Scitalis.TDM.TeamManagement
             }
         }
 
-        public bool ArePlayersTeammates(string userID1, string userID2) 
+        public bool ArePlayersTeammates(CSteamID userID1, CSteamID userID2) 
             => Configs
                 .Items
                 .Values
@@ -96,20 +96,14 @@ namespace Scitalis.TDM.TeamManagement
                                                 $"List of existing teams:\n- {teamNames}");
             }
             
-            Configs.Items.Add(teamName, new TeamInfo { TeamName = teamName, PlayerIDs = new List<string>()});
+            Configs.Items.Add(teamName, new TeamInfo { TeamName = teamName, PlayerIDs = new List<CSteamID>()});
             OnTeamCreated(this, teamName);
         }
-
-        public string GetTeam(UnturnedUser? unturnedUser)
+        
+        public string GetTeam(CSteamID steamID)
         {
-            if (unturnedUser == null)
-            {
-                _logger.LogInformation($"[GetTeam]: Unturned user was null");
-                return string.Empty;
-            }
-            
             foreach (TeamInfo teamInfo in Configs.Items.Values)
-                if (teamInfo.PlayerIDs.Contains(unturnedUser.Id))
+                if (teamInfo.PlayerIDs.Contains(steamID))
                     return teamInfo.TeamName;
 
             _logger.LogInformation($"[GetTeam]: Unturned user was not in the teamInfo");
