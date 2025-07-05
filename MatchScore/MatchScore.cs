@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -82,10 +83,9 @@ namespace Scitalis.TDM.MatchScore
 
             // Default values in case there is no killer or weapon
             string killerName = killerUser?.DisplayName ?? victimUser.DisplayName;
-            string weapon = @event.Player.DamageSourceName;
 
             string message = $"Player {victimUser.DisplayName} was killed by " +
-                       $"{killerName} using {weapon} ({distance}m)";
+                       $"{killerName} ({distance}m)";
             ChatManager.serverSendMessage(message, Color.gray);
             return Task.CompletedTask;
         }
@@ -93,6 +93,8 @@ namespace Scitalis.TDM.MatchScore
         private void CheckWinningCondition()
         {
             _isGamePaused = TeamScores.Any(teamScore => teamScore.Value >= _targetScore);
+            if (_isGamePaused)
+                ChatManager.serverSendMessage("Game over!", Color.red);
         }
 
         private void HandlePvPKill(CSteamID killerUserSteamId, CSteamID victimUserSteamId)
@@ -103,6 +105,17 @@ namespace Scitalis.TDM.MatchScore
                 HandleTeamKill(killerTeam);
             else
                 HandleEnemyKill(killerTeam);
+            DisplayCurrentScore();
+            CheckWinningCondition();
+        }
+
+        private void DisplayCurrentScore()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            foreach (KeyValuePair<string,int> teamScore in TeamScores)
+                stringBuilder.Append($"{teamScore.Key}: {teamScore.Value} / ");
+            stringBuilder.AppendLine($"Target:{_targetScore}");
+            ChatManager.serverSendMessage(stringBuilder.ToString(), Color.red);
         }
 
         private void HandleEnemyKill(string killerTeam)
@@ -113,7 +126,6 @@ namespace Scitalis.TDM.MatchScore
             if (!TeamScores.TryAdd(killerTeam, 1))
                 TeamScores[killerTeam] += 1;
             OnTeamScoreUpdated(this, EventArgs.Empty);
-            CheckWinningCondition();
         }
 
         private void HandleTeamKill(string killerTeam)
@@ -124,7 +136,6 @@ namespace Scitalis.TDM.MatchScore
             if (!TeamScores.TryAdd(killerTeam, -1))
                 TeamScores[killerTeam] -= 1;
             OnTeamScoreUpdated(this, EventArgs.Empty);
-            CheckWinningCondition();
         }
     }
 }
